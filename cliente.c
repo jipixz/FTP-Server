@@ -87,7 +87,10 @@ int main(int argc, char **argv){
         if (bytes <= 0){
             /* verifica el final del archivo */
              exit(0); 
-        } 
+        } else if (strcmp(buf, "close(s);")==0){
+            close(s);
+            break;
+        }
         /* escribe en la salida estándar */
         write(1, buf, bytes); 
         clientActions(buf);
@@ -155,7 +158,9 @@ void passiveConnection(char* port, char* host){
     el byte 0 al final. 
     write(s, argv[2], strlen(argv[2])+1);
     Obtiene el archivo y lo escribe en la salida estándar. 
+    TuT
     */
+
 
    while (1) {
         

@@ -25,7 +25,7 @@
 void fatal(char *string);
 
 /*Definicion del menú de comandos*/
-void menu(int sa, char* option, int* userAccount);
+int menu(int sa, char* option, int* userAccount);
 
 /*Definicion de la funcion que valida el usuario*/
 char* userCommand(char* option, int* userAccount);
@@ -72,27 +72,32 @@ int main(int argc, char *argv[]){
     l = listen(s, QUEUE_SIZE); 
     if (l < 0) fatal("listen failed");
     /* El socket ahora está configurado y enlazado. Espera una conexión y la procesa. */
-
-    /* se bloquea para la solicitud de conexión */
-    sa = accept(s, 0, 0); 
-    if (sa < 0) fatal("accept failed");
-    fprintf(stdout, "Conexión entrante\n\n");
-    write (sa, "Conexión establecida\n\n",25);
-    // end
-    while (1){
-        /* lee el comando desde el socket [buf]*/ 
-        read(sa, buf, BUF_SIZE); 
-        menu(sa,buf,&userAccount);
-        memset(buf, 0, BUF_SIZE); // clear buffer;
-        //fprintf(stdout, "WHILE 2");
+    while(1){
+        //fprintf(stdout, "WHILE 1");
+        /* se bloquea para la solicitud de conexión */
+        sa = accept(s, 0, 0); 
+        if (sa < 0) fatal("accept failed");
+        fprintf(stdout, "Conexión entrante\n\n");
+        write (sa, "Conexión establecida\n\n",25);
+        // end
+        while (1){
+            //fprintf(stdout, "WHILE 2");
+            /* lee el comando desde el socket [buf]*/ 
+            read(sa, buf, BUF_SIZE); 
+            if(menu(sa,buf,&userAccount)==1){
+                write (sa, "close(s);",BUF_SIZE);
+                break;
+            }
+            memset(buf, 0, BUF_SIZE); // clear buffer;
+        }
     }
-    close(sa);
+    //close(sa);
     /* 
     inside while cierra la conexión
     */
 }
 
-void menu(int sa, char* string, int* userAccount){
+int menu(int sa, char* string, int* userAccount){
 
     char response[BUF_SIZE]="";
 
@@ -125,7 +130,7 @@ void menu(int sa, char* string, int* userAccount){
 
     } else if (strcmp(option,"QUIT") == 0){
         
-        
+        return 1;
         
     }else {
 
@@ -144,20 +149,20 @@ void fatal(char *string)
 
 char* userCommand(char* user,int* userAccount){
     if (user==NULL){
-        return (char*)"332 Need account for login.\n";
+        return (char*)"332 Necesita una cuenta para entrar en el sistema.\n";
     }
     *(userAccount)=true;
-    return (char*)"331 User name okay, need password.\n";
+    return (char*)"331 Usuario OK, necesita contraseña.\n";
 }
 
 char* passwordCommand(char* password, int* userAccount){
     if(!*(userAccount)){
-        return (char*)"332 Need account for login.\n";
+        return (char*)"332 Necesita una cuenta para entrar en el sistema.\n";
     }
     if(password == NULL || strcmp(password,STATIC_PASSWORD) != 0){
-        return (char*)"530 Not logged in.\n";
+        return (char*)"530 No está conectado.\n";
     }
-    return (char*)"230 User logged in, proceed.\n";
+    return (char*)"230 Usuario conectado, continúe.\n";
 }
 void passiveCommand(int sa){
     char *response = (char*)"passiveON 127.0.0.1 54321\n";

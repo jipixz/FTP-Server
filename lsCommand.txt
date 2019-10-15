@@ -1,0 +1,7 @@
+total 52
+-rwxrwxr-x 1 jipixz jipixz 13280 oct 14 15:06 cliente
+-rw-rw-r-- 1 jipixz jipixz  4422 oct 14 15:01 cliente.c
+-rw-rw-r-- 1 jipixz jipixz     0 oct 15 18:07 lsCommand.txt
+-rwxrwxr-x 1 jipixz jipixz 13504 oct 15 18:06 server
+-rw-rw-r-- 1 jipixz jipixz  7125 oct 15 18:06 server.c
+drwxrwxr-x 2 jipixz jipixz  4096 oct 14 00:18 Usuario, list
