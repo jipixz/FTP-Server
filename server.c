@@ -10,9 +10,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 /* arbitrario, pero el cliente y el servidor deben coincidir */
-#define SERVER_PORT 12345 
+#define SERVER_PORT 21
 
 /* tamaño de bloque para la transferencia */
 #define BUF_SIZE 4096 
@@ -20,7 +21,7 @@
 #define STATIC_PASSWORD "Jipixz"
 #define true 1
 #define false 0
-#define DATA_PORT 54321
+#define DATA_PORT 20
 
 void fatal(char *string);
 
@@ -43,6 +44,8 @@ void menuPassive(int sa, char* string, int* userAccount);
 char *listCommand(int sa);
 
 int main(int argc, char *argv[]){
+
+    srand(time(NULL));
 
     int s, b, l, fd, sa, bytes, on = 1;
 
@@ -83,6 +86,7 @@ int main(int argc, char *argv[]){
         while (1){
             //fprintf(stdout, "WHILE 2");
             /* lee el comando desde el socket [buf]*/ 
+            memset(buf, 0, BUF_SIZE); // clear buffer;
             read(sa, buf, BUF_SIZE); 
             if(menu(sa,buf,&userAccount)==1){
                 write (sa, "close(s);",BUF_SIZE);
@@ -164,9 +168,9 @@ char* passwordCommand(char* password, int* userAccount){
     }
     return (char*)"230 Usuario conectado, continúe.\n";
 }
-void passiveCommand(int sa){
-    char *response = (char*)"passiveON 127.0.0.1 54321\n";
-    write(sa, response, strlen(response));
+void passiveCommand(int sadata){
+    char *response = (char*)"passiveON 127.0.0.1 20\n";
+    write(sadata, response, strlen(response));
     int s, b, l, fd, bytes, on = 1;
     int userAccount=false;
     char buf[BUF_SIZE]; /* búfer para el archivo saliente */
@@ -187,14 +191,14 @@ void passiveCommand(int sa){
     /* El socket ahora está configurado y enlazado. Espera una conexión y la
     /* procesa. */
     // inside while
-    sa = accept(s, 0, 0); /* se bloquea para la solicitud de conexión */
-    if (sa < 0) fatal((char*)"accept failed");
+    sadata = accept(s, 0, 0); /* se bloquea para la solicitud de conexión */
+    if (sadata < 0) fatal((char*)"accept failed");
     while (1) {
-        read(sa, buf, BUF_SIZE); /* lee el comando desde el socket [buf]*/ 
-        menuPassive(sa,buf, &userAccount);
+        read(sadata, buf, BUF_SIZE); /* lee el comando desde el socket [buf]*/ 
+        menuPassive(sadata,buf, &userAccount);
         memset(buf, 0, BUF_SIZE); // clear buffer;
     }
-    close(sa); /* cierra la conexión*/
+    close(sadata); /* cierra la conexión*/
 }
 
 
@@ -203,8 +207,10 @@ void menuPassive(int sa, char* string, int*  userAccount){
     char *option = strtok(string," "); // obtain first part of command
     
     if (strcmp(option,"LIST") == 0) {
-        //strcpy(response,"LIST: \n");
+        char *response = (char*)"150 Estado del fichero correcto; va a abrirse la conexión de datos.\n";
+        write(sa, response, strlen(response));
         listCommand(sa);
+        //strcpy(response,"LIST: \n");
     } else {
         strcpy(response,"\nComandos disponibles:\n- LIST\n");
     }

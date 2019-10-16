@@ -13,9 +13,10 @@ enviando el archivo completo.
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 /* arbitrario, pero el cliente y el servidor deben coincidir */
-#define SERVER_PORT 12345
+#define SERVER_PORT 21
 
 /* tamaño de bloque para transferencia */ 
 #define BUF_SIZE 4096 
@@ -30,7 +31,13 @@ void passiveConnection(char* host, char* port);
 
 int main(int argc, char **argv){
 
+    srand(time(NULL));
+
+    //int SERVER_PORT = 1024+rand()%(65535-1024);
+    //printf("%d",port);
+
     int c, s, bytes;
+
     char command[BUF_SIZE];
 
     /* búfer para el archivo entrante */
@@ -57,6 +64,7 @@ int main(int argc, char **argv){
         fatal("socket");
     } 
 
+    
     memset(&channel, 0, sizeof(channel));
     channel.sin_family= AF_INET;
     memcpy(&channel.sin_addr.s_addr, h->h_addr, h->h_length);
@@ -115,7 +123,7 @@ void clientActions(char* string){
 }
 
 void passiveConnection(char* port, char* host){
-    int c, s, bytes;
+    int c, sdata, bytes;
 
     /*Imprime la dirección de la conexión pasiva*/
     printf("HOST %s",host);
@@ -140,15 +148,15 @@ void passiveConnection(char* port, char* host){
         fatal ("gethostbyname fallo");
     }
 
-    s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (s < 0){
+    sdata = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sdata < 0){
         fatal ((char*)"socket");
     } 
     memset(&channel, 0, sizeof(channel));
     channel.sin_family= AF_INET;
     memcpy(&channel.sin_addr.s_addr, h->h_addr, h->h_length);
     channel.sin_port= htons(atoi(port));
-    c = connect(s, (struct sockaddr *) &channel, sizeof(channel));
+    c = connect(sdata, (struct sockaddr *) &channel, sizeof(channel));
     if (c < 0){
         fatal ("falló la conexión");
     } 
@@ -165,10 +173,10 @@ void passiveConnection(char* port, char* host){
    while (1) {
         
         fgets(command, sizeof(command), stdin);
-        write(s,command,strlen(command)-1);
+        write(sdata,command,strlen(command)-1);
 
         /* lee del socket */
-        bytes = read(s, buf, BUF_SIZE); 
+        bytes = read(sdata, buf, BUF_SIZE); 
         
         // keep reading
         if (bytes <= 0){
