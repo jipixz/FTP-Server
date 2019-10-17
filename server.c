@@ -45,9 +45,13 @@ char *listCommand(int sa);
 
 int main(int argc, char *argv[]){
 
+    struct sockaddr_in server , client;
+
+    int cliente = sizeof(struct sockaddr_in);
+
     srand(time(NULL));
 
-    int s, b, l, fd, sa, bytes, on = 1;
+    int s, b, l, fd, sa, bytes, on = 1, pid;
 
     /*Inicia sin que alguien haya iniciado sesión*/
     int userAccount = false;
@@ -66,33 +70,39 @@ int main(int argc, char *argv[]){
 
     /* Apertura pasiva. Espera una conexión. */
     s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); /* crea el socket */
-    if (s < 0) fatal("socket failed");
+    if (s < 0) fatal("Creación del socket falló");
     setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on));
     b = bind(s, (struct sockaddr *) &channel, sizeof(channel));
-    if (b < 0) fatal("bind failed");
+    if (b < 0) fatal("Bind falló");
 
     /* especifica el tamaño de la cola */
     l = listen(s, QUEUE_SIZE); 
-    if (l < 0) fatal("listen failed");
+    if (l < 0) fatal("Listen falló");
     /* El socket ahora está configurado y enlazado. Espera una conexión y la procesa. */
     while(1){
+        fprintf(stdout, "Servidor en espera de una conexión...\n\n");
         //fprintf(stdout, "WHILE 1");
         /* se bloquea para la solicitud de conexión */
-        sa = accept(s, 0, 0); 
-        if (sa < 0) fatal("accept failed");
-        fprintf(stdout, "Conexión entrante\n\n");
-        write (sa, "Conexión establecida\n\n",25);
-        // end
-        while (1){
-            //fprintf(stdout, "WHILE 2");
-            /* lee el comando desde el socket [buf]*/ 
-            memset(buf, 0, BUF_SIZE); // clear buffer;
-            read(sa, buf, BUF_SIZE); 
-            if(menu(sa,buf,&userAccount)==1){
-                write (sa, "close(s);",BUF_SIZE);
-                break;
+        sa = accept(s, (struct sockaddr *)&client, (socklen_t*)&cliente); 
+        pid = fork();
+        if (sa < 0) fatal("Accept falló");
+        if(pid == 0){
+
+            fprintf(stdout, "Conexión entrante.\n\n");
+            write (sa, "Conexión establecida.\n\n",25);
+            // end
+            while (1){
+                //fprintf(stdout, "WHILE 2");
+                /* lee el comando desde el socket [buf]*/ 
+                memset(buf, 0, BUF_SIZE); // clear buffer;
+                read(sa, buf, BUF_SIZE); 
+                if(menu(sa,buf,&userAccount)==1){
+                    write (sa, "close(s);",BUF_SIZE);
+                    break;
+                }
+                memset(buf, 0, BUF_SIZE); // clear buffer;
+
             }
-            memset(buf, 0, BUF_SIZE); // clear buffer;
         }
     }
     //close(sa);

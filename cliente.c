@@ -61,7 +61,7 @@ int main(int argc, char **argv){
     s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (s < 0){
-        fatal("socket");
+        fatal("Creación del socket falló");
     } 
 
     
@@ -72,7 +72,7 @@ int main(int argc, char **argv){
     c = connect(s, (struct sockaddr *) &channel, sizeof(channel));
     
     if (c < 0){
-        fatal("connect failed");
+        fatal("Connect falló");
     } 
     read(s, buf, BUF_SIZE); 
     fprintf(stdout,"%s",buf);
