@@ -115,11 +115,14 @@ void fatal(char *string){
 
 void clientActions(char* string){
     /* obtiene la primera parte del comando*/
-    char *option = strtok(string," ");
-
-    if(strcmp(option,"passiveON")==0){
+    char *option = strtok(string,"(");
+    char *ip = strtok(NULL, " ");
+    char *puerto = strtok(NULL, ")");
+    if(strcmp(option,"227 Iniciando modo pasivo ")==0){
+        
         //Puerto del host
-        passiveConnection(strtok(NULL," "), strtok(NULL," "));
+        passiveConnection(puerto, ip);
+
     }
 }
 

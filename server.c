@@ -195,9 +195,9 @@ char* passwordCommand(char* password, int* userAccount){
     return (char*)"230 Usuario conectado, continúe.\n";
 }
 void passiveCommand(int sadata){
-    char *response = (char*)"passiveON 127.0.0.1 20\n";
+    char *response = (char*)"227 Iniciando modo pasivo (127.0.0.1 20).\n";
     write(sadata, response, strlen(response));
-    int s, b, l, fd, bytes, on = 1;
+    int sda, b, l, fd, bytes, on = 1;
     int userAccount=false;
     char buf[BUF_SIZE]; /* búfer para el archivo saliente */
     struct sockaddr_in channel; /* contiene la dirección IP */
@@ -207,17 +207,17 @@ void passiveCommand(int sadata){
     channel.sin_addr.s_addr = htonl(INADDR_ANY);
     channel.sin_port = htons(DATA_PORT);
     /* Apertura pasiva. Espera una conexión. */
-    s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); /* crea el socket */
-    if (s < 0) fatal((char*)"socket failed");
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on));
-    b = bind(s, (struct sockaddr *) &channel, sizeof(channel));
+    sda = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); /* crea el socket */
+    if (sda < 0) fatal((char*)"socket failed");
+    setsockopt(sda, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on));
+    b = bind(sda, (struct sockaddr *) &channel, sizeof(channel));
     if (b < 0) fatal((char*)"bind failed");
-    l = listen(s, QUEUE_SIZE); /* especifica el tamaño de la cola */
+    l = listen(sda, QUEUE_SIZE); /* especifica el tamaño de la cola */
     if (l < 0) fatal((char*)"listen failed");
     /* El socket ahora está configurado y enlazado. Espera una conexión y la
     /* procesa. */
     // inside while
-    sadata = accept(s, 0, 0); /* se bloquea para la solicitud de conexión */
+    sadata = accept(sda, 0, 0); /* se bloquea para la solicitud de conexión */
     if (sadata < 0) fatal((char*)"accept failed");
     while (1) {
         read(sadata, buf, BUF_SIZE); /* lee el comando desde el socket [buf]*/ 
