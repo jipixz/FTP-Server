@@ -13,7 +13,7 @@
 #include <time.h>
 
 /* arbitrario, pero el cliente y el servidor deben coincidir */
-#define SERVER_PORT 20
+#define SERVER_PORT 21
 
 /* tamaño de bloque para la transferencia */
 #define BUF_SIZE 4096 
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL));
 
-    int s, b, l, fd, sa, bytes, on = 1, pid;
+    int s, b, l, fd, sa, bytes, on = 1, pid, no_cliente;
 
     /*Inicia sin que alguien haya iniciado sesión*/
     int userAccount = false;
@@ -88,20 +88,23 @@ int main(int argc, char *argv[]){
         /* se bloquea para la solicitud de conexión */
         sa = accept(s, (struct sockaddr *)&client, (socklen_t*)&cliente); 
         pid = fork();
+        no_cliente ++;
         if (sa < 0) fatal("Accept falló");
         if(pid == 0){
 
-            fprintf(stdout, "Conexión entrante.\n\n");
-            write (sa, "Conexión establecida.\n\n",25);
+            fprintf(stdout, "Conexión entrante con número de ID %d.\n\n",no_cliente);
+            write (sa, "Conexión establecida con número de ID .\n\n", BUF_SIZE);
             // end
             while (1){
                 //fprintf(stdout, "WHILE 2");
                 /* lee el comando desde el socket [buf]*/ 
-                memset(buf, 0, BUF_SIZE); // clear buffer;
+                //memset(buf, 0, BUF_SIZE); // clear buffer;
                 read(sa, buf, BUF_SIZE); 
-                if(menu(sa,buf,&userAccount)==1){
+                if(menu(sa,buf,&userAccount) == 1){
+
                     write (sa, "close(s);",BUF_SIZE);
                     break;
+
                 }
                 memset(buf, 0, BUF_SIZE); // clear buffer;
 
@@ -153,9 +156,13 @@ int menu(int sa, char* string, int* userAccount){
         
         return 1;
         
-    }else {
+    }else if(strcmp(option, "HELP") == 0){
 
         strcpy(response,"\nComandos disponibles:\n- USER\n- PASS\n- PORT\n- LIST\n- PASV\n- SYST\n");
+
+    }else{
+
+        strcpy(response, "\nComando no reconocido.\n");
 
     }
     

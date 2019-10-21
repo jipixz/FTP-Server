@@ -16,7 +16,7 @@ enviando el archivo completo.
 #include <time.h>
 
 /* arbitrario, pero el cliente y el servidor deben coincidir */
-#define SERVER_PORT 20
+#define SERVER_PORT 21
 
 /* tamaño de bloque para transferencia */ 
 #define BUF_SIZE 4096 
@@ -83,6 +83,7 @@ int main(int argc, char **argv){
     */
     
     while (1){
+        printf("Ingrese comando: ");
         /*Lee desde el teclado*/
         fgets(command, sizeof(command), stdin);
 
@@ -95,7 +96,7 @@ int main(int argc, char **argv){
         if (bytes <= 0){
             /* verifica el final del archivo */
              exit(0); 
-        } else if (strcmp(buf, "close(s);")==0){
+        } else if (strcmp(buf, "close(s);") == 0){
             close(s);
             break;
         }
@@ -134,7 +135,7 @@ void passiveConnection(char* port, char* host){
     char command[BUF_SIZE];
 
     /*Bufer para archivo entrante*/
-    char buf [BUF_SIZE];
+    char buf [BUF_SIZE]; 
 
     /*Información sobre el servidor*/
     struct hostent *h;
