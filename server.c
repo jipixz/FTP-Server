@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL));
 
-    int s, b, l, fd, sa, bytes, on = 1, pid, no_cliente;
+    int s, b, l, fd, sa, bytes, on = 1, pid, no_cliente = 0;
 
     /*Inicia sin que alguien haya iniciado sesión*/
     int userAccount = false;
@@ -82,16 +82,15 @@ int main(int argc, char *argv[]){
     l = listen(s, QUEUE_SIZE); 
     if (l < 0) fatal("Listen falló");
     /* El socket ahora está configurado y enlazado. Espera una conexión y la procesa. */
-    while(1){
-        fprintf(stdout, "Servidor en espera de una conexión...\n\n");
+    while(2){
+        puts("Servidor en espera de una conexión...\n\n");
         //fprintf(stdout, "WHILE 1");
         /* se bloquea para la solicitud de conexión */
         sa = accept(s, (struct sockaddr *)&client, (socklen_t*)&cliente); 
-        pid = fork();
         no_cliente ++;
+        pid = fork();
         if (sa < 0) fatal("Accept falló");
         if(pid == 0){
-
             fprintf(stdout, "Conexión entrante con número de ID %d.\n\n",no_cliente);
             write (sa, "Conexión establecida con número de ID .\n\n", BUF_SIZE);
             // end
@@ -99,11 +98,14 @@ int main(int argc, char *argv[]){
                 //fprintf(stdout, "WHILE 2");
                 /* lee el comando desde el socket [buf]*/ 
                 //memset(buf, 0, BUF_SIZE); // clear buffer;
-                read(sa, buf, BUF_SIZE); 
+                if(read(sa, buf, BUF_SIZE)==0){
+                    fprintf(stdout,"El cliente %d salió.\n\n",no_cliente);
+                    return 1;
+                } 
                 if(menu(sa,buf,&userAccount) == 1){
 
                     write (sa, "close(s);",BUF_SIZE);
-                    break;
+                    return 1;
 
                 }
                 memset(buf, 0, BUF_SIZE); // clear buffer;
