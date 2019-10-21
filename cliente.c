@@ -16,7 +16,7 @@ enviando el archivo completo.
 #include <time.h>
 
 /* arbitrario, pero el cliente y el servidor deben coincidir */
-#define SERVER_PORT 21
+#define SERVER_PORT 20
 
 /* tamaño de bloque para transferencia */ 
 #define BUF_SIZE 4096 
@@ -126,10 +126,10 @@ void passiveConnection(char* port, char* host){
     int c, sdata, bytes;
 
     /*Imprime la dirección de la conexión pasiva*/
-    printf("HOST %s",host);
+    //printf("HOST %s",host);
 
     /*Imprime el puerto de la conexión pasiva*/
-    printf("PORT %s", port);
+    //printf("PORT %s", port);
 
     char command[BUF_SIZE];
 

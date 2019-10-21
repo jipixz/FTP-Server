@@ -13,7 +13,7 @@
 #include <time.h>
 
 /* arbitrario, pero el cliente y el servidor deben coincidir */
-#define SERVER_PORT 21
+#define SERVER_PORT 20
 
 /* tamaño de bloque para la transferencia */
 #define BUF_SIZE 4096 
@@ -22,6 +22,9 @@
 #define true 1
 #define false 0
 #define DATA_PORT 20
+
+int userAuth = false;
+int userPass = false;
 
 void fatal(char *string);
 
@@ -135,8 +138,12 @@ int menu(int sa, char* string, int* userAccount){
         strcpy(response,"150 Estado del fichero correcto; va a abrirse la conexión de datos.\n");
 
     } else if (strcmp(option,"PASV") == 0) {
-        
-        passiveCommand(sa);
+        if (userAuth == true && userPass == true){
+
+            passiveCommand(sa);
+
+        }
+        strcpy(response,"530 No está conectado.\n");
 
     } else if (strcmp(option,"SYST") == 0) {
 
@@ -166,6 +173,7 @@ char* userCommand(char* user,int* userAccount){
         return (char*)"332 Necesita una cuenta para entrar en el sistema.\n";
     }
     *(userAccount)=true;
+    userAuth = true;
     return (char*)"331 Usuario OK, necesita contraseña.\n";
 }
 
@@ -176,6 +184,7 @@ char* passwordCommand(char* password, int* userAccount){
     if(password == NULL || strcmp(password,STATIC_PASSWORD) != 0){
         return (char*)"530 No está conectado.\n";
     }
+    userPass = true;
     return (char*)"230 Usuario conectado, continúe.\n";
 }
 void passiveCommand(int sadata){
