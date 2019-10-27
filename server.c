@@ -25,6 +25,7 @@
 
 int userAuth = false;
 int userPass = false;
+int sData = false;
 
 void fatal(char *string);
 
@@ -38,7 +39,7 @@ char* userCommand(char* option, int* userAccount);
 char* passwordCommand(char* password, int* userAccount);
 
 /*Definicion de la conexión pasiva*/
-void passiveCommand(int sa);
+char* passiveSocket(int sa);
 
 /*Definicion del menu de la conexion pasiva*/
 void menuPassive(int sa, char* string, int* userAccount);
@@ -51,8 +52,6 @@ int main(int argc, char *argv[]){
     struct sockaddr_in server , client;
 
     int cliente = sizeof(struct sockaddr_in);
-
-    srand(time(NULL));
 
     int s, b, l, fd, sa, bytes, on = 1, pid, no_cliente = 0;
 
@@ -95,9 +94,7 @@ int main(int argc, char *argv[]){
             write (sa, "Conexión establecida con número de ID .\n\n", BUF_SIZE);
             // end
             while (1){
-                //fprintf(stdout, "WHILE 2");
-                /* lee el comando desde el socket [buf]*/ 
-                //memset(buf, 0, BUF_SIZE); // clear buffer;
+
                 if(read(sa, buf, BUF_SIZE)==0){
                     fprintf(stdout,"El cliente %d salió.\n\n",no_cliente);
                     return 1;
@@ -113,10 +110,6 @@ int main(int argc, char *argv[]){
             }
         }
     }
-    //close(sa);
-    /* 
-    inside while cierra la conexión
-    */
 }
 
 int menu(int sa, char* string, int* userAccount){
@@ -136,23 +129,29 @@ int menu(int sa, char* string, int* userAccount){
 
     } else if (strcmp(option,"PORT") == 0) {
 
-        strcpy(response,"200 Orden correcta.\n");
+        strcpy(response,"\n200 Orden correcta.\n");
 
     } else if (strcmp(option,"LIST") == 0) {
+        if(sData == 1){
+            strcpy(response,"\n125 La conexión de datos ya está abierta; comenzando transferencia.\n");
+        }else{
 
-        strcpy(response,"150 Estado del fichero correcto; va a abrirse la conexión de datos.\n");
+            strcpy(response,"\n425 No se puede abrir la conexión de datos.\n");
+            
+        }
+        
 
     } else if (strcmp(option,"PASV") == 0) {
-        if (userAuth == true && userPass == true){
+        //if (userAuth == true && userPass == true){
 
-            passiveCommand(sa);
+            passiveSocket(sa);
 
-        }
-        strcpy(response,"530 No está conectado.\n");
+        //}
+        //strcpy(response,"530 No está conectado.\n");
 
     } else if (strcmp(option,"SYST") == 0) {
 
-        strcpy(response,"215 NOMBRE system type. Donde NOMBRE es un nombre de sistema oficial de la lista que hay en el documento Números Asignados.\n");
+        strcpy(response,"\n215 NOMBRE system type. Donde NOMBRE es un nombre de sistema oficial de la lista que hay en el documento Números Asignados.\n");
 
     } else if (strcmp(option,"QUIT") == 0){
         
@@ -164,7 +163,7 @@ int menu(int sa, char* string, int* userAccount){
 
     }else{
 
-        strcpy(response, "\nComando no reconocido.\n");
+        strcpy(response, "\n\nComando no reconocido.\n");
 
     }
     
@@ -179,27 +178,34 @@ void fatal(char *string)
 
 char* userCommand(char* user,int* userAccount){
     if (user==NULL){
-        return (char*)"332 Necesita una cuenta para entrar en el sistema.\n";
+        return (char*)"\n332 Necesita una cuenta para entrar en el sistema.\n";
     }
     *(userAccount)=true;
     userAuth = true;
-    return (char*)"331 Usuario OK, necesita contraseña.\n";
+    return (char*)"\n331 Usuario OK, necesita contraseña.\n";
 }
 
 char* passwordCommand(char* password, int* userAccount){
     if(!*(userAccount)){
-        return (char*)"332 Necesita una cuenta para entrar en el sistema.\n";
+        return (char*)"\n332 Necesita una cuenta para entrar en el sistema.\n";
     }
     if(password == NULL || strcmp(password,STATIC_PASSWORD) != 0){
-        return (char*)"530 No está conectado.\n";
+        return (char*)"\n530 No está conectado.\n";
     }
     userPass = true;
-    return (char*)"230 Usuario conectado, continúe.\n";
+    return (char*)"\n230 Usuario conectado, continúe.\n";
 }
-void passiveCommand(int sadata){
-    char *response = (char*)"227 Iniciando modo pasivo (127.0.0.1 20).\n";
-    write(sadata, response, strlen(response));
-    int sda, b, l, fd, bytes, on = 1;
+
+char* passiveSocket(int sa){
+    sData = true;
+    srand(time(NULL));
+    char pasvResponse[BUF_SIZE];
+    int passivePort = 1024 + rand() % (65535 - 1024);
+    sprintf(pasvResponse, "227 Iniciando modo pasivo (127.0.0.1 %d).\n",passivePort);
+    puts(pasvResponse);
+    char *response = (char*)pasvResponse;
+    write(sa, response, strlen(response));
+    int sad, b, l, fd, bytes, on = 1,sdata;
     int userAccount=false;
     char buf[BUF_SIZE]; /* búfer para el archivo saliente */
     struct sockaddr_in channel; /* contiene la dirección IP */
@@ -207,43 +213,19 @@ void passiveCommand(int sadata){
     memset(&channel, 0, sizeof(channel)); /* canal cero */
     channel.sin_family = AF_INET;
     channel.sin_addr.s_addr = htonl(INADDR_ANY);
-    channel.sin_port = htons(DATA_PORT);
+    channel.sin_port = htons(passivePort);
     /* Apertura pasiva. Espera una conexión. */
-    sda = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); /* crea el socket */
-    if (sda < 0) fatal((char*)"socket failed");
-    setsockopt(sda, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on));
-    b = bind(sda, (struct sockaddr *) &channel, sizeof(channel));
+    sad = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); /* crea el socket */
+    if (sad < 0) fatal((char*)"socket failed");
+    setsockopt(sad, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on));
+    b = bind(sad, (struct sockaddr *) &channel, sizeof(channel));
     if (b < 0) fatal((char*)"bind failed");
-    l = listen(sda, QUEUE_SIZE); /* especifica el tamaño de la cola */
+    l = listen(sad, QUEUE_SIZE); /* especifica el tamaño de la cola */
     if (l < 0) fatal((char*)"listen failed");
-    /* El socket ahora está configurado y enlazado. Espera una conexión y la
-    /* procesa. */
-    // inside while
-    sadata = accept(sda, 0, 0); /* se bloquea para la solicitud de conexión */
-    if (sadata < 0) fatal((char*)"accept failed");
-    while (1) {
-        read(sadata, buf, BUF_SIZE); /* lee el comando desde el socket [buf]*/ 
-        menuPassive(sadata,buf, &userAccount);
-        memset(buf, 0, BUF_SIZE); // clear buffer;
-    }
-    close(sadata); /* cierra la conexión*/
-}
-
-
-void menuPassive(int sa, char* string, int*  userAccount){
-    char response[BUF_SIZE];
-    char *option = strtok(string," "); // obtain first part of command
-    
-    if (strcmp(option,"LIST") == 0) {
-        char *response = (char*)"150 Estado del fichero correcto; va a abrirse la conexión de datos.\n";
-        write(sa, response, strlen(response));
-        listCommand(sa);
-        //strcpy(response,"LIST: \n");
-    } else {
-        strcpy(response,"\nComandos disponibles:\n- LIST\n");
-    }
-    
-    write(sa, response, strlen(response));
+    sdata = accept(sad, 0, 0); /* se bloquea para la solicitud de conexión */
+    if (sdata < 0) fatal((char*)"accept failed");
+    //char* respuestaFinal = ("Confirmación pasivo");
+    //write(sdata, respuestaFinal, strlen(respuestaFinal));
 }
 
 char *listCommand(int sa){

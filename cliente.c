@@ -24,7 +24,7 @@ enviando el archivo completo.
 void fatal(char *string);
 
 /*Se definen los comandos en conexión pasiva*/
-void clientActions(char* string);
+void pasvCommand(char* string);
 
 /*Definición de la función de conexión pasiva*/
 void passiveConnection(char* host, char* port);
@@ -33,15 +33,14 @@ int main(int argc, char **argv){
 
     srand(time(NULL));
 
-    //int SERVER_PORT = 1024+rand()%(65535-1024);
-    //printf("%d",port);
-
     int c, s, bytes;
 
     char command[BUF_SIZE];
 
     /* búfer para el archivo entrante */
     char buf[BUF_SIZE]; 
+    char copy_buf[BUF_SIZE];
+    char commandBuf[BUF_SIZE];
 
     /* información sobre el servidor */
     struct hostent *h; 
@@ -76,14 +75,9 @@ int main(int argc, char **argv){
     } 
     read(s, buf, BUF_SIZE); 
     fprintf(stdout,"%s",buf);
-    /* 
-    Se ha establecido la conexión. Se envía el nombre del archivo incluyendo el byte 0 al final.
-    write(s, argv[2], strlen(argv[2])+1);
-    Obtiene el archivo y lo escribe en la salida estándar. 
-    */
     
     while (1){
-        printf("Ingrese comando: ");
+        printf("\nIngrese comando: ");
         /*Lee desde el teclado*/
         fgets(command, sizeof(command), stdin);
 
@@ -92,17 +86,28 @@ int main(int argc, char **argv){
 
         /* lee del socket */
         bytes = read(s, buf, BUF_SIZE); 
+        strcpy(copy_buf,buf);
+        strcpy(commandBuf, buf);
+
         // keep reading
         if (bytes <= 0){
             /* verifica el final del archivo */
              exit(0); 
+        }
+         
+        
+        if(strcmp(strtok(copy_buf, " "),"227") == 0){
+            //puts("Entra a la comparación con 227\n");
+            //fprintf(stdout, "%s", buf);
+            pasvCommand(commandBuf);
+            
         } else if (strcmp(buf, "close(s);") == 0){
+            puts("221 Hasta luego.");
             close(s);
             break;
-        }
         /* escribe en la salida estándar */
+        }
         write(1, buf, bytes); 
-        clientActions(buf);
     }
 }
 
@@ -113,37 +118,37 @@ void fatal(char *string){
 
 }
 
-void clientActions(char* string){
+void pasvCommand(char* string){
+    //puts("Entra a la funcion pasvCommand\n");
     /* obtiene la primera parte del comando*/
     char *option = strtok(string,"(");
     char *ip = strtok(NULL, " ");
     char *puerto = strtok(NULL, ")");
     if(strcmp(option,"227 Iniciando modo pasivo ")==0){
-        
-        //Puerto del host
-        passiveConnection(puerto, ip);
 
+        //Puerto del host
+        //write(1,ip,strlen(ip));
+        //write(1,puerto,strlen(puerto));
+        passiveConnection(puerto, ip);
     }
 }
 
 void passiveConnection(char* port, char* host){
+    //puts("\nEntra a la funcion passiveConnection\n");
     int c, sdata, bytes;
 
     /*Imprime la dirección de la conexión pasiva*/
-    //printf("HOST %s",host);
-
     /*Imprime el puerto de la conexión pasiva*/
-    //printf("PORT %s", port);
 
     char command[BUF_SIZE];
 
     /*Bufer para archivo entrante*/
-    char buf [BUF_SIZE]; 
+    char buf [BUF_SIZE];
 
     /*Información sobre el servidor*/
     struct hostent *h;
 
-    /*Contiene la dirección IP del host*/
+    /*Contiene la dirección IP del hwrite(1, buf, bytes);ost*/
     struct sockaddr_in channel;
 
     /*Obtiene direccion IP del host*/
@@ -160,35 +165,11 @@ void passiveConnection(char* port, char* host){
     channel.sin_family= AF_INET;
     memcpy(&channel.sin_addr.s_addr, h->h_addr, h->h_length);
     channel.sin_port= htons(atoi(port));
+    //puts("boom BITCH");
+
     c = connect(sdata, (struct sockaddr *) &channel, sizeof(channel));
     if (c < 0){
         fatal ("falló la conexión");
-    } 
-
-    /* 
-    Se ha establecido la conexión. Se envía el nombre del archivo incluyendo
-    el byte 0 al final. 
-    write(s, argv[2], strlen(argv[2])+1);
-    Obtiene el archivo y lo escribe en la salida estándar. 
-    TuT
-    */
-
-
-   while (1) {
-        
-        fgets(command, sizeof(command), stdin);
-        write(sdata,command,strlen(command)-1);
-
-        /* lee del socket */
-        bytes = read(sdata, buf, BUF_SIZE); 
-        
-        // keep reading
-        if (bytes <= 0){
-            /* verifica el final del archivo */
-            exit(0); 
-        } 
-        /* escribe en la salida estándar */
-        write(1, buf, bytes); 
-        //close(s);
     }
+    //read(sdata, buf, BUF_SIZE);
 }
