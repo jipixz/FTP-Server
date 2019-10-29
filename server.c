@@ -26,6 +26,7 @@
 int userAuth = false;
 int userPass = false;
 int sData = false;
+char currentDirectory [BUF_SIZE] = "/";
 
 void fatal(char *string);
 
@@ -47,7 +48,11 @@ void menuPassive(int sa, char* string, int* userAccount);
 /*Comando LIST*/
 char *listCommand(int sa);
 
+int tuberia[2];
+
 int main(int argc, char *argv[]){
+
+    pipe(tuberia);
 
     struct sockaddr_in server , client;
 
@@ -90,8 +95,10 @@ int main(int argc, char *argv[]){
         pid = fork();
         if (sa < 0) fatal("Accept falló");
         if(pid == 0){
+            //system((char*)"cd /");
             fprintf(stdout, "Conexión entrante con número de ID %d.\n\n",no_cliente);
-            write (sa, "Conexión establecida con número de ID .\n\n", BUF_SIZE);
+            char* aviso = "Conexión establecida.\n\n";
+            write(sa, aviso, strlen(aviso));
             // end
             while (1){
 
@@ -133,6 +140,8 @@ int menu(int sa, char* string, int* userAccount){
 
     } else if (strcmp(option,"LIST") == 0) {
         if(sData == 1){
+            
+            listCommand(sa);
             strcpy(response,"\n125 La conexión de datos ya está abierta; comenzando transferencia.\n");
         }else{
 
@@ -170,8 +179,7 @@ int menu(int sa, char* string, int* userAccount){
     write(sa, response, strlen(response));
 }
 
-void fatal(char *string)
-{
+void fatal(char *string){
     printf("%s\n", string);
     exit(1);
 }
@@ -197,7 +205,6 @@ char* passwordCommand(char* password, int* userAccount){
 }
 
 char* passiveSocket(int sa){
-    sData = true;
     srand(time(NULL));
     char pasvResponse[BUF_SIZE];
     int passivePort = 1024 + rand() % (65535 - 1024);
@@ -222,8 +229,29 @@ char* passiveSocket(int sa){
     if (b < 0) fatal((char*)"bind failed");
     l = listen(sad, QUEUE_SIZE); /* especifica el tamaño de la cola */
     if (l < 0) fatal((char*)"listen failed");
-    sdata = accept(sad, 0, 0); /* se bloquea para la solicitud de conexión */
-    if (sdata < 0) fatal((char*)"accept failed");
+    int pid;
+    char respuesta[BUF_SIZE];
+    pid = fork();
+    if (pid == 0){
+
+        close(tuberia[1]);
+        sdata = accept(sad, 0, 0); /* se bloquea para la solicitud de conexión */
+        if (sdata < 0) fatal((char*)"accept failed");
+        while (read (tuberia[0], respuesta, BUF_SIZE)){
+
+            write(sdata, respuesta, strlen(respuesta));
+            
+        }
+        
+
+    }else{
+
+        sData = true;
+        close(tuberia[0]);
+
+
+    }
+
     //char* respuestaFinal = ("Confirmación pasivo");
     //write(sdata, respuestaFinal, strlen(respuestaFinal));
 }
@@ -238,10 +266,10 @@ char *listCommand(int sa){
     if (fd < 0) fatal((char*)"open failed");
     while (1) {
         /* lee del archivo */
-        bytes = read(fd, buf, BUF_SIZE); 
+        bytes = read(fd, buf, BUF_SIZE);
         /* verifica el final del archivo */
         if (bytes <= 0) break; 
         /* describe bytes en el socket */
-        write(sa, buf, bytes); 
+        write(tuberia[1], buf, bytes); 
     }
 }
