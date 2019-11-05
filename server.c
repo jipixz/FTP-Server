@@ -45,6 +45,14 @@ char* passiveSocket(int sa);
 /*Definicion del menu de la conexion pasiva*/
 void menuPassive(int sa, char* string, int* userAccount);
 
+void authCommand(int sa);
+
+void cwdCommand(int sa,char* path);
+
+void typeCommand (int sa);
+
+void pwdCommand(int sa);
+
 /*Comando LIST*/
 char *listCommand(int sa);
 
@@ -93,12 +101,14 @@ int main(int argc, char *argv[]){
         sa = accept(s, (struct sockaddr *)&client, (socklen_t*)&cliente); 
         no_cliente ++;
         pid = fork();
+        char *bienvenida = "220 Servicio preparado para nuevo usuario.\n";
         if (sa < 0) fatal("Accept falló");
         if(pid == 0){
             //system((char*)"cd /");
             fprintf(stdout, "Conexión entrante con número de ID %d.\n\n",no_cliente);
+            write(sa, bienvenida,strlen(bienvenida));
             char* aviso = "Conexión establecida.\n\n";
-            write(sa, aviso, strlen(aviso));
+            //write(sa, aviso, strlen(aviso));
             // end
             while (1){
 
@@ -122,35 +132,38 @@ int main(int argc, char *argv[]){
 int menu(int sa, char* string, int* userAccount){
 
     char response[BUF_SIZE]="";
+    char param[BUF_SIZE];
 
     /*Divición del string entrante en tokens con delimitadores*/
     char *option = strtok(string," ");
 
-    if (strcmp(option,"USER") == 0){
+    if (strncmp(option,"USER",4) == 0){
 
+        sscanf(string,"USER %s",param);
         strcpy(response,userCommand(strtok(NULL," "), userAccount));
 
-    } else if (strcmp(option,"PASS") == 0) {
+    } else if (strncmp(option,"PASS",4) == 0) {
 
+        sscanf(string,"PASS %s",param);
         strcpy(response,passwordCommand(strtok(NULL," "), userAccount));
 
-    } else if (strcmp(option,"PORT") == 0) {
+    } else if (strncmp(option,"PORT",4) == 0) {
 
         strcpy(response,"\n200 Orden correcta.\n");
 
-    } else if (strcmp(option,"LIST") == 0) {
+    } else if (strncmp(option,"LIST",4) == 0) {
         if(sData == 1){
             
+            strcpy(response,"\n125 La conexion de datos ya esta abierta; comenzando transferencia.\n");
             listCommand(sa);
-            strcpy(response,"\n125 La conexión de datos ya está abierta; comenzando transferencia.\n");
+        
         }else{
 
             strcpy(response,"\n425 No se puede abrir la conexión de datos.\n");
             
         }
-        
 
-    } else if (strcmp(option,"PASV") == 0) {
+    } else if (strncmp(option,"PASV",4) == 0) {
         //if (userAuth == true && userPass == true){
 
             passiveSocket(sa);
@@ -158,17 +171,39 @@ int menu(int sa, char* string, int* userAccount){
         //}
         //strcpy(response,"530 No está conectado.\n");
 
-    } else if (strcmp(option,"SYST") == 0) {
+    } else if (strncmp(option,"SYST",4) == 0) {
 
         strcpy(response,"\n215 NOMBRE system type. Donde NOMBRE es un nombre de sistema oficial de la lista que hay en el documento Números Asignados.\n");
 
-    } else if (strcmp(option,"QUIT") == 0){
+    } else if (strncmp(option,"QUIT",4) == 0){
         
         return 1;
         
-    }else if(strcmp(option, "HELP") == 0){
+    }else if(strncmp(option, "FEAT",4) == 0){
 
         strcpy(response,"\nComandos disponibles:\n- USER\n- PASS\n- PORT\n- LIST\n- PASV\n- SYST\n");
+
+    }else if(strncmp(option, "CWD",3) == 0){
+
+        sscanf(string, "CWD %s", param);
+        cwdCommand(sa,param);
+
+    }else if(strncmp(option, "PWD", 3) == 0){
+
+        pwdCommand(sa);
+
+    }else if(strncmp(option, "AUTH",4) == 0){
+
+        authCommand(sa);
+
+    }else if (strncmp(option,"TYPE",4) == 0) {
+
+        strcpy(response,"200 TYPE command success\n");
+        //write(sa, response, strlen(response));
+
+    }else if(strncmp(option, "RETR",4) == 0){
+
+        
 
     }else{
 
@@ -185,11 +220,11 @@ void fatal(char *string){
 }
 
 char* userCommand(char* user,int* userAccount){
-    if (user==NULL){
-        return (char*)"\n332 Necesita una cuenta para entrar en el sistema.\n";
-    }
-    *(userAccount)=true;
-    userAuth = true;
+     if (user==NULL){
+         return (char*)"\n332 Necesita una cuenta para entrar en el sistema.\n";
+     }
+     *(userAccount)=true;
+     userAuth = true;
     return (char*)"\n331 Usuario OK, necesita contraseña.\n";
 }
 
@@ -208,7 +243,10 @@ char* passiveSocket(int sa){
     srand(time(NULL));
     char pasvResponse[BUF_SIZE];
     int passivePort = 1024 + rand() % (65535 - 1024);
-    sprintf(pasvResponse, "227 Iniciando modo pasivo (127.0.0.1 %d).\n",passivePort);
+    int firstPassive = passivePort / 256;
+    int secondPassive = passivePort % firstPassive;
+    int data_port = passivePort;
+    sprintf(pasvResponse, "227 Iniciando modo pasivo (127,0,0,1,%d,%d).\n", firstPassive, secondPassive);
     puts(pasvResponse);
     char *response = (char*)pasvResponse;
     write(sa, response, strlen(response));
@@ -220,7 +258,7 @@ char* passiveSocket(int sa){
     memset(&channel, 0, sizeof(channel)); /* canal cero */
     channel.sin_family = AF_INET;
     channel.sin_addr.s_addr = htonl(INADDR_ANY);
-    channel.sin_port = htons(passivePort);
+    channel.sin_port = htons(data_port);
     /* Apertura pasiva. Espera una conexión. */
     sad = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); /* crea el socket */
     if (sad < 0) fatal((char*)"socket failed");
@@ -249,7 +287,6 @@ char* passiveSocket(int sa){
         sData = true;
         close(tuberia[0]);
 
-
     }
 
     //char* respuestaFinal = ("Confirmación pasivo");
@@ -260,6 +297,8 @@ char *listCommand(int sa){
     int bytes,fd;
     char* buf[BUF_SIZE];
     system((char*)"ls -l > lsCommand.txt");
+    char *respuesta = "150 Estado del fichero correcto; va a abrirse la conexión de datos.";
+    write(sa, respuesta, strlen(respuesta));
 
     /* abre el archivo para regresarlo */
     fd = open((char*)"lsCommand.txt", O_RDONLY); 
@@ -268,8 +307,59 @@ char *listCommand(int sa){
         /* lee del archivo */
         bytes = read(fd, buf, BUF_SIZE);
         /* verifica el final del archivo */
-        if (bytes <= 0) break; 
+        if (bytes <= 0) break;
         /* describe bytes en el socket */
         write(tuberia[1], buf, bytes); 
+    }
+
+    char *response = "226 Cerrando la conexión de datos.";
+    write(sa, response, strlen(response));
+
+}
+
+void authCommand(int sa){
+    char respuesta[BUF_SIZE] = "Este servidor no soporta crifrado TLS";
+    write(sa, respuesta, strlen(respuesta));
+}
+
+void pwdCommand(int sa){
+    int bytes,fd;
+    char buf[BUF_SIZE];
+    char output[BUF_SIZE]="257 ";
+    system((char*)"pwd > pwdCommand.txt");
+    fd = open((char*)"pwdCommand.txt", O_RDONLY); /* abre el archivo para regresarlo */
+    if (fd < 0) fatal((char*)"open failed");
+    while (1) {
+        bytes = read(fd, buf, BUF_SIZE); /* lee del archivo */
+        if (bytes <= 0) break; /* verifica el final del archivo */
+        strcat(output,buf);
+        write(sa, output, strlen(output)); /* cdescribe bytes en el socket */
+        memset(buf,0,BUF_SIZE);
+    }
+}
+
+void typeCommand(int sa){
+
+    char respuesta[BUF_SIZE] = "200 Orden correcta.";
+    write(sa, respuesta, strlen(respuesta));
+
+}
+
+void cwdCommand(int sa,char* path){
+    int bytes,fd;
+    char CurrentDirectory[BUF_SIZE];
+    char root[34] = "/home/jipixz/Documentos/FTP-Server";
+    int handler = chdir(path);
+    if (handler != 0){
+        write(sa, "501 Error de sintaxis en parámetros o argumentos.\r\n", 53); /* cdescribe bytes en el socket */
+    } else {
+        if (getcwd(CurrentDirectory, sizeof(CurrentDirectory)) != NULL) {
+            if(strncmp(root,CurrentDirectory,28)==0){
+                write(sa, "200 Orden correcta.\r\n", 22); /* cdescribe bytes en el socket */
+            } else {
+                chdir(root);
+                write(sa, "500 Permiso denegado\r\n", 23); /* cdescribe bytes en el socket */
+            }
+        }
     }
 }
